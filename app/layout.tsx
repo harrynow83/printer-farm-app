@@ -4,7 +4,6 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth-provider" // Import AuthProvider
 import { Toaster } from "@/components/ui/toaster" // Import Toaster
-import { RealtimeWrapper } from "@/components/realtime-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,11 +21,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <RealtimeWrapper />
-        </AuthProvider>
-        <Toaster />
+        <AuthProvider>{children}</AuthProvider> {/* Wrap children with AuthProvider */}
+        <Toaster /> {/* Add Toaster component here */}
       </body>
     </html>
   )

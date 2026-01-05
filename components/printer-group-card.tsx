@@ -3,159 +3,125 @@
 import type React from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { PrinterGroup } from "@/lib/data-store"
-import { getPrintersByGroupId } from "@/lib/data-store"
+import type { PrinterGroup, Printer } from "@/lib/data-store"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Trash2, Pencil, ArrowRight, PrinterIcon } from "lucide-react"
+import { Trash2, Pencil, ArrowRight, PrinterIcon, Wifi, WifiOff } from "lucide-react"
 import { useAuth } from "./auth-provider"
 import { removePrinterGroup } from "@/lib/data-store"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { EditGroupDialog } from "./edit-group-dialog"
 
 interface PrinterGroupCardProps {
   group: PrinterGroup
-  printersInGroup?: any[]
-  onUpdate: () => void
+  printersInGroup: Printer[]
+  onUpdate: () => void // Callback to refresh data in parent
 }
 
 export function PrinterGroupCard({ group, printersInGroup, onUpdate }: PrinterGroupCardProps) {
   const { role } = useAuth()
   const isAdmin = role === "admin"
   const [isEditGroupDialogOpen, setIsEditGroupDialogOpen] = useState(false)
-  const [printerCount, setPrinterCount] = useState(0)
 
-  // Si no se proporciona printersInGroup, obtenerlo del grupo
-  useEffect(() => {
-    const fetchPrinterCount = async () => {
-      if (printersInGroup) {
-        setPrinterCount(printersInGroup.length)
-      } else {
-        try {
-          const printers = await getPrintersByGroupId(group.id)
-          setPrinterCount(Array.isArray(printers) ? printers.length : 0)
-        } catch (error) {
-          console.error("Error fetching printer count:", error)
-          setPrinterCount(0)
-        }
-      }
-    }
-
-    fetchPrinterCount()
-  }, [group.id, printersInGroup])
-
-  const handleDeleteGroup = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleDeleteGroup = (e: React.MouseEvent) => {
+    e.preventDefault() // Prevent navigation when deleting
+    e.stopPropagation() // Stop event propagation to the Link
     if (confirm(`¿Estás seguro de que quieres eliminar el grupo "${group.name}" y todas sus impresoras?`)) {
-      await removePrinterGroup(group.id)
+      removePrinterGroup(group.id)
       onUpdate()
     }
   }
 
   const handleEditGroup = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault() // Prevent navigation
+    e.stopPropagation() // Stop event propagation
     setIsEditGroupDialogOpen(true)
   }
+
+  // Ensure printersInGroup is an array, even if it somehow comes as undefined
+  const safePrintersInGroup = printersInGroup || []
+  const onlineCount = safePrintersInGroup.filter((p) => p.status === "ready" || p.status === "printing").length
+  const offlineCount = safePrintersInGroup.length - onlineCount
 
   return (
     <Card
       className={cn(
-        "w-full group-card-bg dark:group-card-bg-dark group-card-border dark:group-card-border-dark shadow-md rounded-lg overflow-hidden",
-        "flex flex-col justify-between h-full",
-        "transition-all duration-200 hover:shadow-lg hover:scale-[1.02]",
-        "hover:bg-gradient-to-br hover:from-[hsl(var(--group-card-bg))] hover:to-[hsl(var(--group-card-border))]",
-        "dark:hover:from-[hsl(var(--group-card-bg-dark))] dark:hover:to-[hsl(var(--group-card-border-dark))]",
+        "w-full shadow-lg rounded-3xl overflow-hidden border-0 transition-all duration-300",
+        "flex flex-col justify-between h-full bg-white dark:bg-gray-900",
+        "hover:shadow-2xl hover:translate-y-[-4px]", // Efecto de elevación más suave
       )}
     >
-      {/* 🎯 AQUÍ CAMBIAS EL PADDING INTERNO DE LA TARJETA */}
-      {/* 
-        OPCIONES DE PADDING:
-        - Muy compacto: p-2 sm:p-3
-        - Compacto: p-3 sm:p-4 (ejemplo actual)
-        - Normal: p-4 sm:p-6
-        - Espacioso: p-6 sm:p-8 (original)
-        - Muy espacioso: p-8 sm:p-10
-      */}
-      <Link href={`/groups/${group.id}`} className="flex-grow flex flex-col p-3 sm:p-4">
-        <CardHeader className="flex items-start gap-3 space-y-0 pb-3">
-          <div className="relative">
-            {/* 🎯 AQUÍ CAMBIAS EL TAMAÑO DE LA IMAGEN */}
-            {/* 
-              OPCIONES DE IMAGEN:
-              - Muy pequeña: w-6 h-6 sm:w-8 sm:h-8
-              - Pequeña: w-8 h-8 sm:w-10 sm:h-10 (ejemplo actual)
-              - Normal: w-10 h-10 sm:w-12 sm:h-12
-              - Grande: w-12 h-12 sm:w-16 sm:h-16 (original)
-              - Muy grande: w-16 h-16 sm:w-20 sm:h-20
-            */}
+      <Link href={`/groups/${group.id}`} className="flex-grow flex flex-col p-8 sm:p-10 transition-colors group">
+        <CardHeader className="flex flex-col items-center text-center gap-8 space-y-0 p-0 pb-10">
+          {/* --- Imagen del Grupo --- */}
+          <div className="relative flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+            <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
-              src={group.imageUrl || "/placeholder.svg?height=100&width=100"}
+              src={group.imageUrl || "/placeholder.svg?height=160&width=160&query=printer group"}
               alt={`Imagen del grupo ${group.name}`}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-md object-cover flex-shrink-0 ring-2 ring-[hsl(var(--group-card-border))] dark:ring-[hsl(var(--group-card-border-dark))]"
+              className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl object-cover border-4 border-white dark:border-gray-800 shadow-xl relative z-10"
             />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
           </div>
-          {/* 🎯 AQUÍ CAMBIAS EL TAMAÑO DEL TÍTULO */}
-          {/* 
-            OPCIONES DE TÍTULO:
-            - Muy pequeño: text-sm sm:text-base
-            - Pequeño: text-base sm:text-lg (ejemplo actual)
-            - Normal: text-lg sm:text-xl
-            - Grande: text-xl sm:text-2xl
-            - Muy grande: text-2xl sm:text-3xl (original)
-          */}
-          <CardTitle className="flex-1 text-base sm:text-lg font-bold group-card-text dark:group-card-text-light min-w-0 whitespace-normal break-words">
-            {group.name}
-          </CardTitle>
+          <div className="w-full">
+            {/* --- Título del Grupo --- */}
+            <CardTitle className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-gray-50 truncate mb-4">
+              {group.name}
+            </CardTitle>
+
+            <div className="flex flex-wrap justify-center gap-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold border border-transparent">
+                <PrinterIcon className="h-4 w-4" />
+                <span>{safePrintersInGroup.length} Total</span>
+              </div>
+
+              {onlineCount > 0 && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm font-bold border border-green-100 dark:border-green-800">
+                  <Wifi className="h-4 w-4" />
+                  <span>{onlineCount} Online</span>
+                </div>
+              )}
+
+              {offlineCount > 0 && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-800">
+                  <WifiOff className="h-4 w-4" />
+                  <span>{offlineCount} Offline</span>
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
 
-        <CardContent className="flex-grow flex flex-col justify-between group-card-text dark:group-card-text-light text-center pt-2 space-y-3">
-          {/* 🎯 AQUÍ CAMBIAS EL TAMAÑO DEL CONTADOR */}
-          {/* 
-            OPCIONES DE CONTADOR:
-            - Muy pequeño: text-xs sm:text-sm
-            - Pequeño: text-sm sm:text-base (ejemplo actual)
-            - Normal: text-base sm:text-lg (original)
-            - Grande: text-lg sm:text-xl
-          */}
-          <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold">
-            <div className="p-1.5 rounded-full bg-[hsl(var(--group-card-border))] dark:bg-[hsl(var(--group-card-border-dark))]">
-              <PrinterIcon className="h-3 w-3" />
-            </div>
-            <span>{printerCount} Impresoras</span>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <p className="text-xs sm:text-sm font-semibold opacity-80">Ver detalles del grupo</p>
-            <div className="mt-1 p-1.5 rounded-full bg-[hsl(var(--group-card-border))] dark:bg-[hsl(var(--group-card-border-dark))] transition-transform group-hover:translate-x-1">
-              <ArrowRight className="h-4 w-4" />
-            </div>
+        <CardContent className="p-0 flex flex-col justify-center items-center mt-auto">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold group-hover:gap-4 transition-all">
+            <span>Explorar Grupo</span>
+            <ArrowRight className="h-5 w-5" />
           </div>
         </CardContent>
       </Link>
 
       {isAdmin && (
-        <div className="p-2 pt-0 flex justify-end gap-1 border-t border-[hsl(var(--group-card-border))] dark:border-[hsl(var(--group-card-border-dark))]">
+        <div className="px-6 pb-6 pt-4 flex justify-center gap-4 border-t border-gray-100 dark:border-gray-800 mt-auto bg-gray-50/50 dark:bg-gray-950/20">
           <Button
-            variant="outline"
-            size="sm"
+            variant="secondary"
+            size="icon"
             onClick={handleEditGroup}
-            aria-label="Editar grupo"
-            className="hover:bg-[hsl(var(--group-card-border))] dark:hover:bg-[hsl(var(--group-card-border-dark)))] bg-transparent"
+            className="h-10 w-10 rounded-full shadow-sm"
           >
-            <Pencil className="h-3 w-3" />
-            <span className="sr-only">Editar grupo</span>
+            <Pencil className="h-5 w-5" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDeleteGroup} aria-label="Eliminar grupo">
-            <Trash2 className="h-3 w-3" />
-            <span className="sr-only">Eliminar grupo</span>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={handleDeleteGroup}
+            className="h-10 w-10 rounded-full shadow-sm"
+          >
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
       )}
-
+      {/* Diálogo de Edición de Grupo */}
+      {/* El estilo de este diálogo se controla en components/edit-group-dialog.tsx. */}
       <EditGroupDialog
         isOpen={isEditGroupDialogOpen}
         onClose={() => setIsEditGroupDialogOpen(false)}
