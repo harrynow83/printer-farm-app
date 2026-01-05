@@ -7,6 +7,7 @@ import type { PrinterGroup, Printer } from "@/lib/data-store"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Trash2, Pencil, ArrowRight, PrinterIcon, Wifi, WifiOff } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "./auth-provider"
 import { removePrinterGroup } from "@/lib/data-store"
 import { cn } from "@/lib/utils"
@@ -47,76 +48,72 @@ export function PrinterGroupCard({ group, printersInGroup, onUpdate }: PrinterGr
   return (
     <Card
       className={cn(
-        "w-full shadow-lg rounded-3xl overflow-hidden border-0 transition-all duration-300",
-        "flex flex-col justify-between h-full bg-white dark:bg-gray-900",
-        "hover:shadow-2xl hover:translate-y-[-4px]", // Efecto de elevación más suave
+        "w-full bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 transition-all duration-300",
+        "flex flex-col h-full",
+        "hover:shadow-lg hover:translate-y-[-2px]",
       )}
     >
-      <Link href={`/groups/${group.id}`} className="flex-grow flex flex-col p-8 sm:p-10 transition-colors group">
-        <CardHeader className="flex flex-col items-center text-center gap-8 space-y-0 p-0 pb-10">
-          {/* --- Imagen del Grupo --- */}
-          <div className="relative flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-            <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            <img
-              src={group.imageUrl || "/placeholder.svg?height=160&width=160&query=printer group"}
-              alt={`Imagen del grupo ${group.name}`}
-              className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl object-cover border-4 border-white dark:border-gray-800 shadow-xl relative z-10"
-            />
-          </div>
-          <div className="w-full">
-            {/* --- Título del Grupo --- */}
-            <CardTitle className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-gray-50 truncate mb-4">
-              {group.name}
-            </CardTitle>
-
-            <div className="flex flex-wrap justify-center gap-3">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold border border-transparent">
-                <PrinterIcon className="h-4 w-4" />
-                <span>{safePrintersInGroup.length} Total</span>
-              </div>
-
-              {onlineCount > 0 && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm font-bold border border-green-100 dark:border-green-800">
-                  <Wifi className="h-4 w-4" />
-                  <span>{onlineCount} Online</span>
-                </div>
-              )}
-
-              {offlineCount > 0 && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-800">
-                  <WifiOff className="h-4 w-4" />
-                  <span>{offlineCount} Offline</span>
-                </div>
-              )}
-            </div>
-          </div>
+      <Link href={`/groups/${group.id}`} className="flex-grow flex flex-col group">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+          <CardTitle className="text-lg font-medium flex items-center gap-2 truncate">
+            <PrinterIcon className="h-5 w-5 text-muted-foreground" />
+            {group.name}
+          </CardTitle>
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
+          >
+            Grupo
+          </Badge>
         </CardHeader>
 
-        <CardContent className="p-0 flex flex-col justify-center items-center mt-auto">
-          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold group-hover:gap-4 transition-all">
-            <span>Explorar Grupo</span>
-            <ArrowRight className="h-5 w-5" />
+        <CardContent className="p-4 pt-0 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              <img
+                src={group.imageUrl || "/placeholder.svg?height=80&width=80&query=printer group"}
+                alt={`Imagen del grupo ${group.name}`}
+                className="w-20 h-20 rounded-md object-cover border border-gray-100 dark:border-gray-700 shadow-sm"
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <PrinterIcon className="h-4 w-4" />
+                {safePrintersInGroup.length} Impresoras en total
+              </p>
+              <div className="flex gap-2 mt-2">
+                <span className="inline-flex items-center text-xs font-medium text-green-600 dark:text-green-400">
+                  <Wifi className="h-3 w-3 mr-1" /> {onlineCount}
+                </span>
+                <span className="inline-flex items-center text-xs font-medium text-red-600 dark:text-red-400">
+                  <WifiOff className="h-3 w-3 mr-1" /> {offlineCount}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center mt-4">
+            <Button asChild className="w-full h-9 text-sm">
+              <span className="flex items-center gap-2">
+                Explorar Grupo <ArrowRight className="h-4 w-4" />
+              </span>
+            </Button>
           </div>
         </CardContent>
       </Link>
 
       {isAdmin && (
-        <div className="px-6 pb-6 pt-4 flex justify-center gap-4 border-t border-gray-100 dark:border-gray-800 mt-auto bg-gray-50/50 dark:bg-gray-950/20">
+        <div className="px-4 pb-4 pt-0 flex justify-end gap-2 mt-auto">
           <Button
-            variant="secondary"
-            size="icon"
+            variant="outline"
+            size="sm"
             onClick={handleEditGroup}
-            className="h-10 w-10 rounded-full shadow-sm"
+            className="h-8 w-8 p-0 rounded-md bg-transparent"
           >
-            <Pencil className="h-5 w-5" />
+            <Pencil className="h-4 w-4" />
           </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={handleDeleteGroup}
-            className="h-10 w-10 rounded-full shadow-sm"
-          >
-            <Trash2 className="h-5 w-5" />
+          <Button variant="destructive" size="sm" onClick={handleDeleteGroup} className="h-8 w-8 p-0 rounded-md">
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       )}
