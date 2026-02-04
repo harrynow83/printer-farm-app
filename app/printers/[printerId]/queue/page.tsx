@@ -12,8 +12,6 @@ import { ArrowLeft, Upload, CheckCircle, FileText, Search } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useNotifications } from "@/hooks/use-notifications" // Import useNotifications
-import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
-import { useAuth } from "@/components/auth-provider"
 
 interface PrinterQueuePageProps {
   params: {
@@ -25,7 +23,6 @@ export default function PrinterQueuePage({ params }: PrinterQueuePageProps) {
   const { printerId } = params
   const searchParams = useSearchParams()
   const groupId = searchParams.get("groupId")
-  const { user } = useAuth()
 
   const [printer, setPrinter] = useState<Printer | null>(null)
   const [fileName, setFileName] = useState("")
@@ -33,21 +30,8 @@ export default function PrinterQueuePage({ params }: PrinterQueuePageProps) {
 
   const { showSuccess, showError, showInfo } = useNotifications() // Initialize notifications
 
-  // Configurar actualizaciones en tiempo real para la cola de impresión
-  useRealtimeUpdates({
-    events: ["print_job_added", "print_job_completed", "printer_status_updated"],
-    onUpdate: (event) => {
-      // Solo actualizar si el evento es para esta impresora específica
-      if (event.payload?.id === printerId || event.payload?.printerId === printerId) {
-        console.log("PrintQueue: Received realtime update, refreshing data...")
-        fetchData()
-      }
-    },
-    userId: user,
-  })
-
-  const fetchData = useCallback(async () => {
-    const currentPrinter = await getPrinterById(printerId)
+  const fetchData = useCallback(() => {
+    const currentPrinter = getPrinterById(printerId)
     setPrinter(currentPrinter || null)
   }, [printerId])
 
@@ -63,9 +47,9 @@ export default function PrinterQueuePage({ params }: PrinterQueuePageProps) {
     }
   }
 
-  const handleUploadFile = async () => {
+  const handleUploadFile = () => {
     if (fileName && printer) {
-      await addPrintJobToQueue(printer.id, fileName)
+      addPrintJobToQueue(printer.id, fileName)
       setFileName("")
       fetchData()
       showSuccess("Archivo Añadido", `"${fileName}" ha sido añadido a la cola de ${printer.name}.`)
@@ -74,10 +58,10 @@ export default function PrinterQueuePage({ params }: PrinterQueuePageProps) {
     }
   }
 
-  const handleCompleteJob = async () => {
+  const handleCompleteJob = () => {
     if (printer && printer.queue.length > 0) {
       const completedFileName = printer.queue[0]?.fileName || "un trabajo"
-      await completePrintJob(printer.id)
+      completePrintJob(printer.id)
       fetchData()
       showSuccess("Trabajo Finalizado", `"${completedFileName}" ha sido marcado como finalizado en ${printer.name}.`)
     } else {

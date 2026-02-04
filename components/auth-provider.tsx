@@ -7,14 +7,13 @@ import {
   setLoggedInUser,
   clearLoggedInUser,
   verifyPassword,
-  initializeData,
+  initializeData, // Import initializeData
 } from "@/lib/data-store"
-import { useCleanup } from "@/hooks/use-cleanup"
 
 interface AuthContextType {
   user: string | null
   role: "admin" | "user" | null
-  login: (username: string, password: string) => Promise<boolean>
+  login: (username: string, password: string) => boolean
   logout: () => void
   isLoading: boolean
 }
@@ -26,35 +25,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<"admin" | "user" | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Configurar cleanup de eventos en tiempo real
-  useCleanup()
-
   useEffect(() => {
-    const initAuth = async () => {
-      // Initialize database data
-      await initializeData()
+    // Initialize localStorage data only on the client side
+    initializeData()
 
-      const storedUser = getLoggedInUser()
-      if (storedUser) {
-        const userData = await getUserByUsername(storedUser)
-        if (userData) {
-          setUser(storedUser)
-          setRole(userData.role)
-        } else {
-          clearLoggedInUser() // User not found, clear invalid login
-        }
+    const storedUser = getLoggedInUser()
+    if (storedUser) {
+      const userData = getUserByUsername(storedUser)
+      if (userData) {
+        setUser(storedUser)
+        setRole(userData.role)
+      } else {
+        clearLoggedInUser() // User not found, clear invalid login
       }
-      setIsLoading(false)
     }
+    setIsLoading(false)
+  }, []) // Empty dependency array ensures this runs once on mount
 
-    initAuth()
-  }, [])
-
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const isValid = await verifyPassword(username, password)
-    if (isValid) {
+  const login = (username: string, password: string): boolean => {
+    if (verifyPassword(username, password)) {
       setLoggedInUser(username)
-      const userData = await getUserByUsername(username)
+      const userData = getUserByUsername(username)
       if (userData) {
         setUser(username)
         setRole(userData.role)

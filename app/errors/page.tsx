@@ -7,27 +7,15 @@ import { useAuth } from "@/components/auth-provider"
 import { getErrorsLog, clearErrorLogs, type AppError } from "@/lib/data-store"
 import { ArrowLeft, Trash2, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 
 export default function ErrorLogsPage() {
-  const { role, isLoading, user } = useAuth()
+  const { role, isLoading } = useAuth()
   const isAdmin = role === "admin"
   const [errors, setErrors] = useState<AppError[]>([])
 
-  // Configurar actualizaciones en tiempo real para logs de errores
-  useRealtimeUpdates({
-    events: ["error_logged", "errors_cleared"],
-    onUpdate: () => {
-      console.log("ErrorLogs: Received realtime update, refreshing errors...")
-      fetchErrors()
-    },
-    userId: user,
-  })
-
-  const fetchErrors = useCallback(async () => {
+  const fetchErrors = useCallback(() => {
     if (isAdmin) {
-      const errorsList = await getErrorsLog()
-      setErrors(errorsList)
+      setErrors(getErrorsLog())
     }
   }, [isAdmin])
 
@@ -35,9 +23,9 @@ export default function ErrorLogsPage() {
     fetchErrors()
   }, [fetchErrors])
 
-  const handleClearLogs = async () => {
+  const handleClearLogs = () => {
     if (confirm("¿Estás seguro de que quieres eliminar todos los registros de errores?")) {
-      await clearErrorLogs()
+      clearErrorLogs()
       fetchErrors() // Refresh the list
     }
   }

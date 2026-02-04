@@ -26,17 +26,34 @@ export async function fetchMoonrakerStatus(
     const response = await fetch(proxyUrl, { cache: "no-store" })
 
     if (!response.ok) {
-      const errorText = await response.text() // Read the response as text for debugging
-      const errorMessage = `Error ${response.status}: ${response.statusText}. Detalles: ${errorText.substring(0, 150)}...`
-      showError("Fallo de Conexión Moonraker", `No se pudo obtener el estado de ${ipAddress}.`)
-      addErrorLog(
-        "Fallo de Conexión Moonraker",
-        `No se pudo obtener el estado de la impresora ${ipAddress}.`,
-        `URL: ${proxyUrl}, Estado: ${response.status} ${response.statusText}, Respuesta: ${errorText}`,
-      )
-      console.error(
-        `Moonraker API proxy error for ${ipAddress}: ${response.status} ${response.statusText}. Raw: ${errorText}`,
-      )
+      let errorData
+      try {
+        errorData = await response.json()
+      } catch {
+        errorData = { error: "Unknown error", rawResponse: await response.text() }
+      }
+
+      console.error(`[v0] Moonraker API proxy error for ${ipAddress}: ${response.status}. Raw:`, errorData)
+
+      if (errorData.isTextResponse || (errorData.rawResponse && errorData.rawResponse.startsWith("Invalid"))) {
+        showError(
+          "Error de Configuración de Moonraker",
+          `La impresora ${ipAddress} devolvió una respuesta inválida. Verifica que Moonraker esté configurado correctamente.`,
+        )
+        addErrorLog(
+          "Error de Configuración de Moonraker",
+          `La impresora ${ipAddress} devolvió: "${errorData.details || errorData.rawResponse}"`,
+          `URL: ${proxyUrl}, Esta impresora puede no tener Moonraker instalado o configurado correctamente.`,
+        )
+      } else {
+        showError("Fallo de Conexión Moonraker", `No se pudo obtener el estado de ${ipAddress}.`)
+        addErrorLog(
+          "Fallo de Conexión Moonraker",
+          `No se pudo obtener el estado de la impresora ${ipAddress}.`,
+          `URL: ${proxyUrl}, Estado: ${response.status}, Respuesta: ${JSON.stringify(errorData)}`,
+        )
+      }
+
       return { status: "offline", progress: 0, eta: null }
     }
 
@@ -87,7 +104,7 @@ export async function fetchMoonrakerStatus(
       `Fallo al intentar obtener el estado de la impresora ${ipAddress}.`,
       `URL: ${proxyUrl}, Mensaje: ${errorMessage}`,
     )
-    console.error(`Failed to fetch Moonraker status for ${ipAddress} via proxy:`, error)
+    console.error(`[v0] Failed to fetch Moonraker status for ${ipAddress} via proxy:`, error)
     return { status: "offline", progress: 0, eta: null }
   }
 }

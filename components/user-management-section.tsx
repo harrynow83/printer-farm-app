@@ -8,33 +8,21 @@ import { getUsers, removeUser, type User } from "@/lib/data-store"
 import { useAuth } from "./auth-provider"
 import { EditUserDialog } from "./edit-user-dialog"
 import { AddUserDialog } from "./add-user-dialog" // NEW: Import AddUserDialog
-import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 
 interface UserManagementSectionProps {
   onUserChange: () => void // Callback to notify parent of user list changes
 }
 
 export function UserManagementSection({ onUserChange }: UserManagementSectionProps) {
-  const { role, user } = useAuth()
+  const { role } = useAuth()
   const isAdmin = role === "admin"
   const [users, setUsers] = useState<User[]>([])
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false) // NEW: State for add user dialog
 
-  // Configurar actualizaciones en tiempo real para usuarios
-  useRealtimeUpdates({
-    events: ["user_added", "user_updated", "user_deleted"],
-    onUpdate: () => {
-      console.log("UserManagement: Received realtime update, refreshing users...")
-      fetchUsers()
-    },
-    userId: user,
-  })
-
-  const fetchUsers = useCallback(async () => {
-    const usersList = await getUsers()
-    setUsers(usersList)
+  const fetchUsers = useCallback(() => {
+    setUsers(getUsers())
   }, [])
 
   useEffect(() => {
@@ -43,13 +31,13 @@ export function UserManagementSection({ onUserChange }: UserManagementSectionPro
     }
   }, [isAdmin, fetchUsers])
 
-  const handleDeleteUser = async (userId: string, username: string) => {
+  const handleDeleteUser = (userId: string, username: string) => {
     if (!isAdmin) {
       alert("No tienes permisos para realizar esta acción.")
       return
     }
     if (confirm(`¿Estás seguro de que quieres eliminar al usuario "${username}"?`)) {
-      const success = await removeUser(userId)
+      const success = removeUser(userId)
       if (success) {
         fetchUsers() // Refresh the list
         onUserChange() // Notify parent (dashboard) if needed
