@@ -302,7 +302,7 @@ export const addPrinter = (groupId: string, name: string, ipAddress: string): Pr
   return newPrinter
 }
 
-export const updatePrinter = (printerId: string, newName: string, newIpAddress: string): Printer | null => {
+export const updatePrinter = (printerId: string, newName: string, newIpAddress: string, newImageUrl?: string): Printer | null => {
   if (typeof window === "undefined") return null
   const printers = getPrinters()
 
@@ -312,7 +312,14 @@ export const updatePrinter = (printerId: string, newName: string, newIpAddress: 
   }
 
   const updatedPrinters = printers.map((printer) =>
-    printer.id === printerId ? { ...printer, name: newName, ipAddress: newIpAddress } : printer,
+    printer.id === printerId 
+      ? { 
+          ...printer, 
+          name: newName, 
+          ipAddress: newIpAddress,
+          ...(newImageUrl && { imageUrl: newImageUrl })
+        } 
+      : printer,
   )
   localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
   return updatedPrinters.find((p) => p.id === printerId) || null
