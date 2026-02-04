@@ -48,13 +48,13 @@ export function PrinterGroupCard({ group, printersInGroup, onUpdate }: PrinterGr
   return (
     <Card
       className={cn(
-        "w-full bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 transition-all duration-300",
-        "flex flex-col h-full",
+        "w-full dark:bg-gray-800 shadow-md rounded-lg overflow-hidden border-gray-200 dark:border-gray-700 transition-all duration-300 mx-0 my-3 bg-stone-200 gap-0.5 px-0.5 mt-1 border-0 py-0.5 mb-3.5",
+        "flex h-full flex-col",
         "hover:shadow-lg hover:translate-y-[-2px]",
       )}
     >
       <Link href={`/groups/${group.id}`} className="flex-grow flex flex-col group">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pt-1 pr-1 pl-1 pb-1">
           <CardTitle className="text-lg font-medium flex items-center gap-2 truncate">
             <PrinterIcon className="h-5 w-5 text-muted-foreground" />
             {group.name}
@@ -67,7 +67,7 @@ export function PrinterGroupCard({ group, printersInGroup, onUpdate }: PrinterGr
           </Badge>
         </CardHeader>
 
-        <CardContent className="p-4 pt-0 space-y-4">
+        <CardContent className="p-4 space-x-1 pt-0 border-8">
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0">
               <img
@@ -103,7 +103,7 @@ export function PrinterGroupCard({ group, printersInGroup, onUpdate }: PrinterGr
       </Link>
 
       {isAdmin && (
-        <div className="px-4 pb-4 pt-0 flex justify-end gap-2 mt-auto">
+        <div className="px-4 pt-0 flex justify-end mt-auto pl-0.5 gap-1 pb-1">
           <Button
             variant="outline"
             size="sm"

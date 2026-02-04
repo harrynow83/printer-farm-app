@@ -24,11 +24,11 @@ export default function GroupList() {
 
   return (
     <div className="w-full dark:bg-orange-900 dark:border-orange-700 shadow-md rounded-lg overflow-hidden border-2">
-      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+      <header className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm gap-1.5 mb-3.5">
+        <h1 className="font-bold text-gray-900 dark:text-gray-50 text-2xl">
           Bienvenido, {user} ({role})
         </h1>
-        <div className="flex gap-2">
+        <div className="flex gap-0.5 leading-7 mx-0 px-0.5">
           {isAdmin && (
             <Button onClick={() => setIsAddGroupDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -51,7 +51,7 @@ export default function GroupList() {
             </p>
           </div>
         ) : (
-          <div className="flex-grow flex flex-col p-6 sm:p-8 font-thin sm:px-3 sm:py-0 leading-7 py-0.5 w-auto">
+          <div className="flex-grow flex flex-col p-6 sm:p-8 font-thin sm:px-3 sm:py-0 leading-7 w-auto px-3 my-0 py-3">
             {printerGroups.map((group) => (
               <PrinterGroupCard key={group.id} group={group} onUpdate={fetchData} />
             ))}
