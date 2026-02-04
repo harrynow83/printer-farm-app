@@ -6,8 +6,11 @@ const hashPassword = (password: string) => btoa(password)
 export interface User {
   id: string
   username: string
+  email: string
   passwordHash: string
   role: "admin" | "user"
+  createdAt: number
+  lastLogin?: number
 }
 
 export interface PrintJob {
@@ -57,8 +60,8 @@ export const initializeData = () => {
     // Ensure localStorage is available
     if (!localStorage.getItem(USERS_KEY)) {
       const defaultUsers: User[] = [
-        { id: uuidv4(), username: "admin", passwordHash: hashPassword("adminpass"), role: "admin" },
-        { id: uuidv4(), username: "user", passwordHash: hashPassword("userpass"), role: "user" },
+        { id: uuidv4(), username: "admin", email: "admin@example.com", passwordHash: hashPassword("adminpass"), role: "admin", createdAt: Date.now() },
+        { id: uuidv4(), username: "user", email: "user@example.com", passwordHash: hashPassword("userpass"), role: "user", createdAt: Date.now() },
       ]
       localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers))
     }
@@ -110,20 +113,35 @@ export const clearLoggedInUser = () => {
 }
 
 // New: Add User
-export const addUser = (username: string, password: string, role: "admin" | "user" = "user"): User | null => {
+export const addUser = (username: string, email: string, password: string, role: "admin" | "user" = "user"): User | null => {
   if (typeof window === "undefined") return null
   const users = getUsers()
   if (users.some((u) => u.username === username)) {
     return null // Username already exists
   }
+  if (users.some((u) => u.email === email)) {
+    return null // Email already exists
+  }
   const newUser: User = {
     id: uuidv4(),
     username,
+    email,
     passwordHash: hashPassword(password),
     role,
+    createdAt: Date.now(),
   }
   localStorage.setItem(USERS_KEY, JSON.stringify([...users, newUser]))
   return newUser
+}
+
+// Update last login timestamp
+export const updateUserLastLogin = (userId: string): void => {
+  if (typeof window === "undefined") return
+  const users = getUsers()
+  const updatedUsers = users.map((u) =>
+    u.id === userId ? { ...u, lastLogin: Date.now() } : u
+  )
+  localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers))
 }
 
 // New: Remove User
@@ -140,6 +158,7 @@ export const removeUser = (userId: string): boolean => {
 export const updateUser = (
   userId: string,
   newUsername: string,
+  newEmail: string,
   newPassword?: string, // Optional new password
   newRole?: "admin" | "user", // Optional new role
 ): User | null => {
@@ -156,10 +175,16 @@ export const updateUser = (
     return null // New username already exists
   }
 
+  // Check if new email already exists for another user
+  if (users.some((u) => u.id !== userId && u.email === newEmail)) {
+    return null // New email already exists
+  }
+
   const userToUpdate = users[userIndex]
   const updatedUser: User = {
     ...userToUpdate,
     username: newUsername,
+    email: newEmail,
     role: newRole !== undefined ? newRole : userToUpdate.role,
     passwordHash: newPassword ? hashPassword(newPassword) : userToUpdate.passwordHash,
   }
