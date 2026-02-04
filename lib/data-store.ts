@@ -6,8 +6,11 @@ const hashPassword = (password: string) => btoa(password)
 export interface User {
   id: string
   username: string
+  email: string
   passwordHash: string
   role: "admin" | "user"
+  createdAt: number
+  lastLogin?: number
 }
 
 export interface PrintJob {
@@ -17,11 +20,14 @@ export interface PrintJob {
   completedAt?: number // New: Timestamp when the job was completed
 }
 
+export type MaintenanceStatus = "ok" | "maintenance" | "broken"
+
 export interface Printer {
   id: string
   name: string
   ipAddress: string // Added IP address
   status: "online" | "offline" | "printing" | "error"
+  maintenanceStatus: MaintenanceStatus // Estado de mantenimiento
   queue: PrintJob[]
   completedJobs: PrintJob[] // NEW: Array to store completed print jobs
   imageUrl?: string
@@ -57,8 +63,8 @@ export const initializeData = () => {
     // Ensure localStorage is available
     if (!localStorage.getItem(USERS_KEY)) {
       const defaultUsers: User[] = [
-        { id: uuidv4(), username: "admin", passwordHash: hashPassword("adminpass"), role: "admin" },
-        { id: uuidv4(), username: "user", passwordHash: hashPassword("userpass"), role: "user" },
+        { id: uuidv4(), username: "admin", email: "admin@example.com", passwordHash: hashPassword("adminpass"), role: "admin", createdAt: Date.now() },
+        { id: uuidv4(), username: "user", email: "user@example.com", passwordHash: hashPassword("userpass"), role: "user", createdAt: Date.now() },
       ]
       localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers))
     }
@@ -110,20 +116,35 @@ export const clearLoggedInUser = () => {
 }
 
 // New: Add User
-export const addUser = (username: string, password: string, role: "admin" | "user" = "user"): User | null => {
+export const addUser = (username: string, email: string, password: string, role: "admin" | "user" = "user"): User | null => {
   if (typeof window === "undefined") return null
   const users = getUsers()
   if (users.some((u) => u.username === username)) {
     return null // Username already exists
   }
+  if (users.some((u) => u.email === email)) {
+    return null // Email already exists
+  }
   const newUser: User = {
     id: uuidv4(),
     username,
+    email,
     passwordHash: hashPassword(password),
     role,
+    createdAt: Date.now(),
   }
   localStorage.setItem(USERS_KEY, JSON.stringify([...users, newUser]))
   return newUser
+}
+
+// Update last login timestamp
+export const updateUserLastLogin = (userId: string): void => {
+  if (typeof window === "undefined") return
+  const users = getUsers()
+  const updatedUsers = users.map((u) =>
+    u.id === userId ? { ...u, lastLogin: Date.now() } : u
+  )
+  localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers))
 }
 
 // New: Remove User
@@ -140,6 +161,7 @@ export const removeUser = (userId: string): boolean => {
 export const updateUser = (
   userId: string,
   newUsername: string,
+  newEmail: string,
   newPassword?: string, // Optional new password
   newRole?: "admin" | "user", // Optional new role
 ): User | null => {
@@ -156,10 +178,16 @@ export const updateUser = (
     return null // New username already exists
   }
 
+  // Check if new email already exists for another user
+  if (users.some((u) => u.id !== userId && u.email === newEmail)) {
+    return null // New email already exists
+  }
+
   const userToUpdate = users[userIndex]
   const updatedUser: User = {
     ...userToUpdate,
     username: newUsername,
+    email: newEmail,
     role: newRole !== undefined ? newRole : userToUpdate.role,
     passwordHash: newPassword ? hashPassword(newPassword) : userToUpdate.passwordHash,
   }
@@ -222,6 +250,7 @@ export const getPrinters = (): Printer[] => {
     ...p,
     queue: p.queue || [],
     completedJobs: p.completedJobs || [],
+    maintenanceStatus: p.maintenanceStatus || "ok", // Default to "ok" for existing printers
   }))
 }
 
@@ -254,6 +283,7 @@ export const addPrinter = (groupId: string, name: string, ipAddress: string): Pr
     name,
     ipAddress, // Store IP address
     status: "online", // Default status
+    maintenanceStatus: "ok", // Default maintenance status
     queue: [],
     completedJobs: [], // Initialize completedJobs array
     imageUrl: "/placeholder.svg?height=80&width=80", // Default placeholder
@@ -272,7 +302,7 @@ export const addPrinter = (groupId: string, name: string, ipAddress: string): Pr
   return newPrinter
 }
 
-export const updatePrinter = (printerId: string, newName: string, newIpAddress: string): Printer | null => {
+export const updatePrinter = (printerId: string, newName: string, newIpAddress: string, newImageUrl?: string): Printer | null => {
   if (typeof window === "undefined") return null
   const printers = getPrinters()
 
@@ -282,7 +312,14 @@ export const updatePrinter = (printerId: string, newName: string, newIpAddress: 
   }
 
   const updatedPrinters = printers.map((printer) =>
-    printer.id === printerId ? { ...printer, name: newName, ipAddress: newIpAddress } : printer,
+    printer.id === printerId 
+      ? { 
+          ...printer, 
+          name: newName, 
+          ipAddress: newIpAddress,
+          ...(newImageUrl && { imageUrl: newImageUrl })
+        } 
+      : printer,
   )
   localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
   return updatedPrinters.find((p) => p.id === printerId) || null
@@ -312,6 +349,19 @@ export const updatePrinterStatus = (
   const printers = getPrinters()
   const updatedPrinters = printers.map((printer) =>
     printer.id === printerId ? { ...printer, status, progress, eta } : printer,
+  )
+  localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
+}
+
+// Update printer maintenance status
+export const updatePrinterMaintenanceStatus = (
+  printerId: string,
+  maintenanceStatus: MaintenanceStatus,
+) => {
+  if (typeof window === "undefined") return
+  const printers = getPrinters()
+  const updatedPrinters = printers.map((printer) =>
+    printer.id === printerId ? { ...printer, maintenanceStatus } : printer,
   )
   localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
 }

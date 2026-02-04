@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { addUser } from "@/lib/data-store"
-import type { User } from "@/lib/data-store" // Import User type for role
+import type { User } from "@/lib/data-store"
+import { Mail, User as UserIcon, Lock, Shield } from "lucide-react"
 
 interface AddUserDialogProps {
   isOpen: boolean
@@ -24,85 +25,174 @@ interface AddUserDialogProps {
 
 export function AddUserDialog({ isOpen, onClose, onAdd }: AddUserDialogProps) {
   const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<User["role"]>("user") // New state for role, default to 'user'
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [role, setRole] = useState<User["role"]>("user")
   const [error, setError] = useState<string | null>(null)
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 
   const handleSubmit = () => {
     setError(null)
-    if (username.trim() && password.trim()) {
-      const newUser = addUser(username, password, role) // Pass the selected role
-      if (newUser) {
-        setUsername("")
-        setPassword("")
-        setRole("user") // Reset role to default
-        onAdd()
-        onClose()
-      } else {
-        setError("El nombre de usuario ya existe.")
-      }
+    
+    if (!username.trim()) {
+      setError("El nombre de usuario es obligatorio.")
+      return
+    }
+    
+    if (!email.trim()) {
+      setError("El correo electrónico es obligatorio.")
+      return
+    }
+    
+    if (!validateEmail(email)) {
+      setError("Por favor, ingresa un correo electrónico válido.")
+      return
+    }
+    
+    if (!password.trim()) {
+      setError("La contraseña es obligatoria.")
+      return
+    }
+    
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.")
+      return
+    }
+    
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.")
+      return
+    }
+
+    const newUser = addUser(username, email, password, role)
+    if (newUser) {
+      setUsername("")
+      setEmail("")
+      setPassword("")
+      setConfirmPassword("")
+      setRole("user")
+      onAdd()
+      onClose()
     } else {
-      setError("Por favor, ingresa un nombre de usuario y una contraseña.")
+      setError("El nombre de usuario o correo electrónico ya existe.")
     }
   }
 
+  const handleClose = () => {
+    setUsername("")
+    setEmail("")
+    setPassword("")
+    setConfirmPassword("")
+    setRole("user")
+    setError(null)
+    onClose()
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
         <div>
           <DialogHeader>
-            <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <UserIcon className="h-5 w-5 text-primary" />
+              Registrar Nuevo Usuario
+            </DialogTitle>
             <DialogDescription>
-              Ingresa el nombre de usuario, la contraseña y el rol para el nuevo usuario.
+              Completa el formulario para crear una nueva cuenta de usuario.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Usuario
+            <div className="space-y-2">
+              <Label htmlFor="username" className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                Nombre de Usuario
               </Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="col-span-3"
-                placeholder="nuevo_usuario"
+                placeholder="Ej: juan_perez"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="password" className="text-right">
-                Contraseña
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                Correo Electrónico
               </Label>
               <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="col-span-3"
-                placeholder="contraseña_segura"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ej: usuario@ejemplo.com"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">
-                Rol
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  Contraseña
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min. 6 caracteres"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  Confirmar
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repetir contraseña"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role" className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                Rol del Usuario
               </Label>
               <Select value={role} onValueChange={(value: User["role"]) => setRole(value)}>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecciona un rol" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Usuario</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="user">Usuario - Acceso básico</SelectItem>
+                  <SelectItem value="admin">Administrador - Acceso completo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {error && <p className="text-red-500 text-sm mt-2 col-span-4 text-center">{error}</p>}
+            
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+                <p className="text-destructive text-sm text-center">{error}</p>
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit}>Agregar Usuario</Button>
+            <Button onClick={handleSubmit}>
+              Registrar Usuario
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

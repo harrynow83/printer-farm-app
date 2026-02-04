@@ -35,7 +35,15 @@ export async function fetchMoonrakerStatus(
 
       console.error(`[v0] Moonraker API proxy error for ${ipAddress}: ${response.status}. Raw:`, errorData)
 
-      if (errorData.isTextResponse || (errorData.rawResponse && errorData.rawResponse.startsWith("Invalid"))) {
+      if (errorData.isPreviewLimitation) {
+        // v0 preview HTTPS limitation - don't show error toast repeatedly
+        console.warn(`[v0] Preview limitation: Cannot connect to local HTTP printer ${ipAddress}`)
+        addErrorLog(
+          "Limitación del Entorno Preview",
+          `No se puede conectar a ${ipAddress} porque el entorno v0 solo permite HTTPS.`,
+          `${errorData.hint || "Despliega la app en tu red local para conectar con impresoras HTTP."}`,
+        )
+      } else if (errorData.isTextResponse || (errorData.rawResponse && errorData.rawResponse.startsWith("Invalid"))) {
         showError(
           "Error de Configuración de Moonraker",
           `La impresora ${ipAddress} devolvió una respuesta inválida. Verifica que Moonraker esté configurado correctamente.`,

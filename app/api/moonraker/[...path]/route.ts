@@ -63,6 +63,24 @@ export async function GET(request: Request) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     console.error(`[v0] Proxy caught network error for ${targetUrl}:`, errorMessage, error)
 
+    // Detect HTTPS-only environment limitation
+    const isHttpsOnlyError = errorMessage.toLowerCase().includes("https") || 
+                            errorMessage.toLowerCase().includes("ssl") ||
+                            errorMessage.toLowerCase().includes("secure")
+
+    if (isHttpsOnlyError) {
+      return NextResponse.json(
+        {
+          error: "HTTPS Required",
+          message: "El entorno de v0 preview solo permite conexiones HTTPS. Las impresoras locales con HTTP no son accesibles desde este entorno.",
+          hint: "Para probar con impresoras locales, despliega la aplicacion en tu propia red o usa un tunel HTTPS como ngrok.",
+          targetUrl: targetUrl,
+          isPreviewLimitation: true,
+        },
+        { status: 502 },
+      )
+    }
+
     return NextResponse.json(
       {
         error: "Network error connecting to printer",

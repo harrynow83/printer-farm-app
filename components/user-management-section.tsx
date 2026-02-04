@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trash2, UserIcon, Pencil, UserPlus } from "lucide-react" // NEW: Import UserPlus icon
+import { Badge } from "@/components/ui/badge"
+import { Trash2, UserIcon, Pencil, UserPlus, Mail, Shield, Clock, Users } from "lucide-react"
 import { getUsers, removeUser, type User } from "@/lib/data-store"
 import { useAuth } from "./auth-provider"
 import { EditUserDialog } from "./edit-user-dialog"
-import { AddUserDialog } from "./add-user-dialog" // NEW: Import AddUserDialog
+import { AddUserDialog } from "./add-user-dialog"
 
 interface UserManagementSectionProps {
-  onUserChange: () => void // Callback to notify parent of user list changes
+  onUserChange: () => void
 }
 
 export function UserManagementSection({ onUserChange }: UserManagementSectionProps) {
@@ -19,7 +20,7 @@ export function UserManagementSection({ onUserChange }: UserManagementSectionPro
   const [users, setUsers] = useState<User[]>([])
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
-  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false) // NEW: State for add user dialog
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
 
   const fetchUsers = useCallback(() => {
     setUsers(getUsers())
@@ -36,18 +37,17 @@ export function UserManagementSection({ onUserChange }: UserManagementSectionPro
       alert("No tienes permisos para realizar esta acción.")
       return
     }
-    if (confirm(`¿Estás seguro de que quieres eliminar al usuario "${username}"?`)) {
+    if (confirm(`¿Estás seguro de que quieres eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
       const success = removeUser(userId)
       if (success) {
-        fetchUsers() // Refresh the list
-        onUserChange() // Notify parent (dashboard) if needed
+        fetchUsers()
+        onUserChange()
       } else {
         alert("Fallo al eliminar el usuario.")
       }
     }
   }
 
-  // NEW: Handle edit user
   const handleEditUser = (user: User) => {
     if (!isAdmin) {
       alert("No tienes permisos para realizar esta acción.")
@@ -57,77 +57,125 @@ export function UserManagementSection({ onUserChange }: UserManagementSectionPro
     setIsEditUserDialogOpen(true)
   }
 
-  if (!isAdmin) {
-    return null // Only render for admins
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return "Nunca"
+    return new Date(timestamp).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
   }
 
+  if (!isAdmin) {
+    return null
+  }
+
+  const adminCount = users.filter(u => u.role === "admin").length
+  const userCount = users.filter(u => u.role === "user").length
+
   return (
-    <Card className="w-full bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between">
-        {" "}
-        {/* Modified: Added flex-row and justify-between */}
-        <CardTitle className="text-xl font-bold flex items-center gap-2">
-          <UserIcon className="h-6 w-6 text-muted-foreground" />
-          Gestión de Usuarios
-        </CardTitle>
-        {/* Este es el botón "Agregar Usuario" */}
-        <Button onClick={() => setIsAddUserDialogOpen(true)} size="sm">
+    <Card className="w-full bg-card border border-border shadow-lg rounded-xl overflow-hidden">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            Panel de Administración
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Gestiona los usuarios del sistema. Total: {users.length} usuarios ({adminCount} admins, {userCount} usuarios)
+          </CardDescription>
+        </div>
+        <Button onClick={() => setIsAddUserDialogOpen(true)} className="shrink-0">
           <UserPlus className="mr-2 h-4 w-4" />
-          Agregar Usuario
+          Registrar Usuario
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      
+      <CardContent className="pt-4">
         {users.length === 0 ? (
-          <p className="text-muted-foreground">No hay usuarios registrados.</p>
+          <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
+            <UserIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground text-lg">No hay usuarios registrados.</p>
+            <p className="text-sm text-muted-foreground mt-1">Haz clic en "Registrar Usuario" para crear el primero.</p>
+          </div>
         ) : (
-          <ul className="space-y-2">
+          <div className="space-y-3">
             {users.map((userItem) => (
-              <li
+              <div
                 key={userItem.id}
-                className="flex items-center justify-between p-3 border rounded-md bg-gray-50 dark:bg-gray-700"
+                className="flex items-center justify-between p-4 border border-border rounded-lg bg-card hover:bg-muted/50 transition-colors"
               >
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-900 dark:text-gray-50">{userItem.username}</span>
-                  <span className="text-sm text-muted-foreground">Rol: {userItem.role}</span>
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-muted rounded-full">
+                    <UserIcon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{userItem.username}</span>
+                      <Badge 
+                        variant={userItem.role === "admin" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        <Shield className="h-3 w-3 mr-1" />
+                        {userItem.role === "admin" ? "Administrador" : "Usuario"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {userItem.email || "Sin email"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Creado: {formatDate(userItem.createdAt)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {/* NEW: Edit Button */}
+                
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditUser(userItem)}
                     aria-label={`Editar usuario ${userItem.username}`}
                   >
-                    <Pencil className="h-4 w-4" />
-                    <span className="sr-only">Editar</span>
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
                   </Button>
-                  {/* Prevent admin from deleting themselves */}
-                  {userItem.username !== "admin" && ( // Assuming 'admin' is the primary admin account
+                  {userItem.username !== "admin" && (
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteUser(userItem.id, userItem.username)}
                       aria-label={`Eliminar usuario ${userItem.username}`}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Eliminar</span>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Eliminar
                     </Button>
                   )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
-      {/* NEW: Edit User Dialog */}
+      
       <EditUserDialog
         isOpen={isEditUserDialogOpen}
         onClose={() => setIsEditUserDialogOpen(false)}
         onUpdate={fetchUsers}
         user={userToEdit}
       />
-      {/* Y al final del componente, el diálogo asociado: */}
-      <AddUserDialog isOpen={isAddUserDialogOpen} onClose={() => setIsAddUserDialogOpen(false)} onAdd={fetchUsers} />
+      <AddUserDialog 
+        isOpen={isAddUserDialogOpen} 
+        onClose={() => setIsAddUserDialogOpen(false)} 
+        onAdd={fetchUsers} 
+      />
     </Card>
   )
 }
