@@ -20,11 +20,14 @@ export interface PrintJob {
   completedAt?: number // New: Timestamp when the job was completed
 }
 
+export type MaintenanceStatus = "ok" | "maintenance" | "broken"
+
 export interface Printer {
   id: string
   name: string
   ipAddress: string // Added IP address
   status: "online" | "offline" | "printing" | "error"
+  maintenanceStatus: MaintenanceStatus // Estado de mantenimiento
   queue: PrintJob[]
   completedJobs: PrintJob[] // NEW: Array to store completed print jobs
   imageUrl?: string
@@ -247,6 +250,7 @@ export const getPrinters = (): Printer[] => {
     ...p,
     queue: p.queue || [],
     completedJobs: p.completedJobs || [],
+    maintenanceStatus: p.maintenanceStatus || "ok", // Default to "ok" for existing printers
   }))
 }
 
@@ -279,6 +283,7 @@ export const addPrinter = (groupId: string, name: string, ipAddress: string): Pr
     name,
     ipAddress, // Store IP address
     status: "online", // Default status
+    maintenanceStatus: "ok", // Default maintenance status
     queue: [],
     completedJobs: [], // Initialize completedJobs array
     imageUrl: "/placeholder.svg?height=80&width=80", // Default placeholder
@@ -337,6 +342,19 @@ export const updatePrinterStatus = (
   const printers = getPrinters()
   const updatedPrinters = printers.map((printer) =>
     printer.id === printerId ? { ...printer, status, progress, eta } : printer,
+  )
+  localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
+}
+
+// Update printer maintenance status
+export const updatePrinterMaintenanceStatus = (
+  printerId: string,
+  maintenanceStatus: MaintenanceStatus,
+) => {
+  if (typeof window === "undefined") return
+  const printers = getPrinters()
+  const updatedPrinters = printers.map((printer) =>
+    printer.id === printerId ? { ...printer, maintenanceStatus } : printer,
   )
   localStorage.setItem(PRINTERS_KEY, JSON.stringify(updatedPrinters))
 }

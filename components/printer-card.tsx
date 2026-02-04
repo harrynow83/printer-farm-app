@@ -4,16 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Trash2, ExternalLink, PrinterIcon, Wifi, Pencil, Pause, Play, XCircle } from "lucide-react" // Removed Terminal icon
-import type { Printer } from "@/lib/data-store"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Trash2, ExternalLink, PrinterIcon, Wifi, Pencil, Pause, Play, XCircle, Wrench, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react"
+import type { Printer, MaintenanceStatus } from "@/lib/data-store"
 import { useAuth } from "./auth-provider"
-import { updatePrinterStatus, removePrinter } from "@/lib/data-store"
+import { updatePrinterStatus, removePrinter, updatePrinterMaintenanceStatus } from "@/lib/data-store"
 import { cn } from "@/lib/utils"
 import { EditPrinterDialog } from "./edit-printer-dialog"
-// Removed import for SendGcodeDialog
 import { fetchMoonrakerStatus, formatTime, pausePrint, resumePrint, cancelPrint } from "@/lib/moonraker-api"
 import Link from "next/link"
-import { useNotifications } from "@/hooks/use-notifications" // Import useNotifications
+import { useNotifications } from "@/hooks/use-notifications"
 
 interface PrinterCardProps {
   printer: Printer
@@ -147,7 +154,49 @@ export function PrinterCard({ printer, groupId, onUpdate }: PrinterCardProps) {
     }
   }
 
-  // Removed handleSendGcode function
+  const handleMaintenanceStatusChange = (newStatus: MaintenanceStatus) => {
+    updatePrinterMaintenanceStatus(printer.id, newStatus)
+    onUpdate()
+    const statusLabels: Record<MaintenanceStatus, string> = {
+      ok: "OK - Operativa",
+      maintenance: "En Mantenimiento",
+      broken: "Averiada",
+    }
+    showInfo("Estado Actualizado", `${printer.name} marcada como "${statusLabels[newStatus]}"`)
+  }
+
+  const getMaintenanceStatusConfig = (status: MaintenanceStatus) => {
+    switch (status) {
+      case "ok":
+        return {
+          label: "OK",
+          icon: CheckCircle2,
+          className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+        }
+      case "maintenance":
+        return {
+          label: "Mantenimiento",
+          icon: Wrench,
+          className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+        }
+      case "broken":
+        return {
+          label: "Averiada",
+          icon: AlertTriangle,
+          className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        }
+      default:
+        return {
+          label: "OK",
+          icon: CheckCircle2,
+          className: "bg-green-100 text-green-800 border-green-200",
+        }
+    }
+  }
+
+  const currentMaintenanceStatus = printer.maintenanceStatus || "ok"
+  const maintenanceConfig = getMaintenanceStatusConfig(currentMaintenanceStatus)
+  const MaintenanceIcon = maintenanceConfig.icon
 
   return (
     <Card className="w-full bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
@@ -156,9 +205,55 @@ export function PrinterCard({ printer, groupId, onUpdate }: PrinterCardProps) {
           <PrinterIcon className="h-5 w-5 text-muted-foreground" />
           {printer.name}
         </CardTitle>
-        <Badge className={cn("border", getStatusColorClasses(currentPrinterStatus))}>
-          {currentPrinterStatus.charAt(0).toUpperCase() + currentPrinterStatus.slice(1)}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {/* Dropdown de estado de mantenimiento */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className={cn(
+                  "h-7 px-2 text-xs font-medium border gap-1",
+                  maintenanceConfig.className
+                )}
+              >
+                <MaintenanceIcon className="h-3.5 w-3.5" />
+                {maintenanceConfig.label}
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Estado de Mantenimiento</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleMaintenanceStatusChange("ok")}
+                className={cn(currentMaintenanceStatus === "ok" && "bg-accent")}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                <span>OK - Operativa</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleMaintenanceStatusChange("maintenance")}
+                className={cn(currentMaintenanceStatus === "maintenance" && "bg-accent")}
+              >
+                <Wrench className="mr-2 h-4 w-4 text-yellow-600" />
+                <span>En Mantenimiento</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleMaintenanceStatusChange("broken")}
+                className={cn(currentMaintenanceStatus === "broken" && "bg-accent")}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4 text-red-600" />
+                <span>Averiada</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Badge de estado de conexion */}
+          <Badge className={cn("border", getStatusColorClasses(currentPrinterStatus))}>
+            {currentPrinterStatus.charAt(0).toUpperCase() + currentPrinterStatus.slice(1)}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
